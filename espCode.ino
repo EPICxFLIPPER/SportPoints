@@ -4,15 +4,15 @@
 #include <Adafruit_BME280.h>
 #include <SPI.h>
 #include "BluetoothSerial.h"
-String device_name = "ESP32-BT";
+#include <ArduinoJson.h> // Include ArduinoJson library
 
+String device_name = "ESP32-BT";
 
 #define BME_SCK 13
 #define BME_MISO 12
 #define BME_MOSI 11
 #define BME_CS 10
 #define SEALEVELPRESSURE_HPA (1013.25)
-
 
 const int buttonPinOne = 12;
 const int buttonPinTwo = 25;
@@ -35,8 +35,6 @@ void setup() {
   pinMode(buttonPinThree, INPUT);
   pinMode(ledPin, OUTPUT);
 
-
-
   if (!SerialBT.begin(device_name)) { // Start Bluetooth with the device name
     Serial.println("An error occurred initializing Bluetooth");
   } else {
@@ -44,7 +42,6 @@ void setup() {
   }
 
   Wire.begin();
-  
 
   // Try to initialize!
   if (!mpu.begin(0x68) || !bme.begin(0x76)) {
@@ -116,90 +113,66 @@ void setup() {
 
   Serial.println("");
   delay(100);
-
 }
 
 void loop() {
-
   if (SerialBT.hasClient()) {
-    buttonLogic();
-    getMPUData();
-    getBMEData();
+    // Declare and initialize a new JSON document at the start of each loop iteration
+    StaticJsonDocument<512> doc;
 
-    digitalWrite(2,HIGH);
+    buttonLogic(doc);
+    getMPUData(doc);
+    getBMEData(doc);
+
+    String output;
+    serializeJson(doc, output);
+    SerialBT.println(output);
+
+    digitalWrite(2, HIGH);
     delay(100);
-    digitalWrite(2,LOW);
+    digitalWrite(2, LOW);
     Serial.println("");
   }
   
   delay(500);
-
 }
 
-void buttonLogic(){
+void buttonLogic(StaticJsonDocument<512>& doc) {
   buttonStateOne = digitalRead(buttonPinOne);
   buttonStateTwo = digitalRead(buttonPinTwo);
   buttonStateThree = digitalRead(buttonPinThree);
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH
-  if (buttonStateOne == HIGH || buttonStateTwo == HIGH || buttonStateThree == HIGH) {
-  SerialBT.print("ON");
-  digitalWrite(ledPin, HIGH);
-  }
-  else {
-  // turn LED off
-  SerialBT.print("OFF");
-  digitalWrite(ledPin, LOW);}
 
+  doc["buttonOne"] = buttonStateOne;
+  doc["buttonTwo"] = buttonStateTwo;
+  doc["buttonThree"] = buttonStateThree;
+
+  if (buttonStateOne == HIGH || buttonStateTwo == HIGH || buttonStateThree == HIGH) {
+    doc["led"] = "ON";
+    digitalWrite(ledPin, HIGH);
+  } else {
+    doc["led"] = "OFF";
+    digitalWrite(ledPin, LOW);
+  }
 }
 
-void getMPUData(){
-    // put your main code here, to run repeatedly:
-    sensors_event_t a, g, temp;
+void getMPUData(StaticJsonDocument<512>& doc) {
+  sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  /* Print out the values */
-  SerialBT.print("Acceleration X: ");
-  SerialBT.print(a.acceleration.x);
-  SerialBT.print(", Y: ");
-  SerialBT.print(a.acceleration.y);
-  SerialBT.print(", Z: ");
-  SerialBT.print(a.acceleration.z);
-  SerialBT.println(" m/s^2");
+  doc["acceleration"]["x"] = a.acceleration.x;
+  doc["acceleration"]["y"] = a.acceleration.y;
+  doc["acceleration"]["z"] = a.acceleration.z;
 
-  SerialBT.print("Rotation X: ");
-  SerialBT.print(g.gyro.x);
-  SerialBT.print(", Y: ");
-  SerialBT.print(g.gyro.y);
-  SerialBT.print(", Z: ");
-  SerialBT.print(g.gyro.z);
-  SerialBT.println(" rad/s");
+  doc["gyro"]["x"] = g.gyro.x;
+  doc["gyro"]["y"] = g.gyro.y;
+  doc["gyro"]["z"] = g.gyro.z;
 
-  SerialBT.print("Temperature: ");
-  SerialBT.print(temp.temperature);
-  SerialBT.println(" degC");
+  doc["temperature"] = temp.temperature;
 }
 
-void getBMEData(){
-  
-  SerialBT.print("Temperature = ");
-  SerialBT.print(bme.readTemperature());
-  SerialBT.println(" °C");
-
-  SerialBT.print("Pressure = ");
-
-  SerialBT.print(bme.readPressure() / 100.0F);
-  SerialBT.println(" hPa");
-
-  SerialBT.print("Approx. Altitude = ");
-  SerialBT.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-  SerialBT.println(" m");
-
-  SerialBT.print("Humidity = ");
-  SerialBT.print(bme.readHumidity());
-  SerialBT.println(" %");
-
-  SerialBT.println();
-
+void getBMEData(StaticJsonDocument<512>& doc) {
+  doc["bme"]["temperature"] = bme.readTemperature();
+  doc["bme"]["pressure"] = bme.readPressure() / 100.0F;
+  doc["bme"]["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA);
+  doc["bme"]["humidity"] = bme.readHumidity();
 }
-
