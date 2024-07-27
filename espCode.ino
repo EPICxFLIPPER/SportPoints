@@ -1,4 +1,3 @@
-//Code that the ESP32 device is running to collect mpu and bme data
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
@@ -14,12 +13,29 @@ String device_name = "ESP32-BT";
 #define BME_CS 10
 #define SEALEVELPRESSURE_HPA (1013.25)
 
+
+const int buttonPinOne = 12;
+const int buttonPinTwo = 25;
+const int buttonPinThree = 34;
+const int ledPin = 5;
+
+int buttonStateOne = 0;
+int buttonStateTwo = 0;
+int buttonStateThree = 0;
+
 Adafruit_BME280 bme;
 Adafruit_MPU6050 mpu;
 BluetoothSerial SerialBT;
 
 void setup() {
   Serial.begin(115200);
+
+  pinMode(buttonPinOne, INPUT);
+  pinMode(buttonPinTwo, INPUT);
+  pinMode(buttonPinThree, INPUT);
+  pinMode(ledPin, OUTPUT);
+
+
 
   if (!SerialBT.begin(device_name)) { // Start Bluetooth with the device name
     Serial.println("An error occurred initializing Bluetooth");
@@ -104,7 +120,9 @@ void setup() {
 }
 
 void loop() {
+
   if (SerialBT.hasClient()) {
+    buttonLogic();
     getMPUData();
     getBMEData();
 
@@ -115,6 +133,23 @@ void loop() {
   }
   
   delay(500);
+
+}
+
+void buttonLogic(){
+  buttonStateOne = digitalRead(buttonPinOne);
+  buttonStateTwo = digitalRead(buttonPinTwo);
+  buttonStateThree = digitalRead(buttonPinThree);
+  // check if the pushbutton is pressed.
+  // if it is, the buttonState is HIGH
+  if (buttonStateOne == HIGH || buttonStateTwo == HIGH || buttonStateThree == HIGH) {
+  SerialBT.print("ON");
+  digitalWrite(ledPin, HIGH);
+  }
+  else {
+  // turn LED off
+  SerialBT.print("OFF");
+  digitalWrite(ledPin, LOW);}
 
 }
 
@@ -167,3 +202,4 @@ void getBMEData(){
   SerialBT.println();
 
 }
+
