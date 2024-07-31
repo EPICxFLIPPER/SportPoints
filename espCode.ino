@@ -118,44 +118,34 @@ void setup() {
 void loop() {
   if (SerialBT.hasClient()) {
     // Declare and initialize a new JSON document at the start of each loop iteration
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<1024> doc;
 
-    buttonLogic(doc);
-    getMPUData(doc);
-    getBMEData(doc);
+    String received = SerialBT.readString();
+    received.trim();
 
-    String output;
-    serializeJson(doc, output);
-    SerialBT.println(output);
-
-    digitalWrite(2, HIGH);
-    delay(100);
-    digitalWrite(2, LOW);
-    Serial.println("");
+    if (received == "collect") {
+      digitalWrite(ledPin, HIGH);
+      dataCollect(doc);
+      String output;
+      serializeJson(doc, output);
+      SerialBT.println(output);
+    } else {
+      digitalWrite(ledPin, LOW);
+    }
   }
   
-  delay(500);
+  delay(10);
 }
 
-void buttonLogic(StaticJsonDocument<512>& doc) {
-  buttonStateOne = digitalRead(buttonPinOne);
-  buttonStateTwo = digitalRead(buttonPinTwo);
-  buttonStateThree = digitalRead(buttonPinThree);
-
-  doc["buttonOne"] = buttonStateOne;
-  doc["buttonTwo"] = buttonStateTwo;
-  doc["buttonThree"] = buttonStateThree;
-
-  if (buttonStateOne == HIGH || buttonStateTwo == HIGH || buttonStateThree == HIGH) {
-    doc["led"] = "ON";
-    digitalWrite(ledPin, HIGH);
-  } else {
-    doc["led"] = "OFF";
-    digitalWrite(ledPin, LOW);
-  }
+void dataCollect(StaticJsonDocument<1024>& doc){
+    
+  getMPUData(doc);
+  getBMEData(doc);
+    
+      
 }
 
-void getMPUData(StaticJsonDocument<512>& doc) {
+void getMPUData(StaticJsonDocument<1024>& doc) {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
@@ -170,9 +160,10 @@ void getMPUData(StaticJsonDocument<512>& doc) {
   doc["temperature"] = temp.temperature;
 }
 
-void getBMEData(StaticJsonDocument<512>& doc) {
+void getBMEData(StaticJsonDocument<1024>& doc) {
   doc["bme"]["temperature"] = bme.readTemperature();
   doc["bme"]["pressure"] = bme.readPressure() / 100.0F;
   doc["bme"]["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA);
   doc["bme"]["humidity"] = bme.readHumidity();
 }
+
