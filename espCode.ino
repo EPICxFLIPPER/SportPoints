@@ -14,26 +14,12 @@ String device_name = "ESP32-BT";
 #define BME_CS 10
 #define SEALEVELPRESSURE_HPA (1013.25)
 
-const int buttonPinOne = 12;
-const int buttonPinTwo = 25;
-const int buttonPinThree = 34;
-const int ledPin = 5;
-
-int buttonStateOne = 0;
-int buttonStateTwo = 0;
-int buttonStateThree = 0;
-
 Adafruit_BME280 bme;
 Adafruit_MPU6050 mpu;
 BluetoothSerial SerialBT;
 
 void setup() {
   Serial.begin(115200);
-
-  pinMode(buttonPinOne, INPUT);
-  pinMode(buttonPinTwo, INPUT);
-  pinMode(buttonPinThree, INPUT);
-  pinMode(ledPin, OUTPUT);
 
   if (!SerialBT.begin(device_name)) { // Start Bluetooth with the device name
     Serial.println("An error occurred initializing Bluetooth");
@@ -119,22 +105,14 @@ void loop() {
   if (SerialBT.hasClient()) {
     // Declare and initialize a new JSON document at the start of each loop iteration
     StaticJsonDocument<1024> doc;
-
-    String received = SerialBT.readString();
-    received.trim();
-
-    if (received == "collect") {
-      digitalWrite(ledPin, HIGH);
-      dataCollect(doc);
-      String output;
-      serializeJson(doc, output);
-      SerialBT.println(output);
-    } else {
-      digitalWrite(ledPin, LOW);
-    }
+    dataCollect(doc);
+    String output;
+    serializeJson(doc, output);
+    SerialBT.println(output);
+    
   }
   
-  delay(10);
+  delay(50);
 }
 
 void dataCollect(StaticJsonDocument<1024>& doc){
@@ -166,4 +144,3 @@ void getBMEData(StaticJsonDocument<1024>& doc) {
   doc["bme"]["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA);
   doc["bme"]["humidity"] = bme.readHumidity();
 }
-
