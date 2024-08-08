@@ -112,7 +112,7 @@ void loop() {
     
   }
   
-  delay(50);
+  delay(10);
 }
 
 void dataCollect(StaticJsonDocument<1024>& doc){
@@ -127,20 +127,17 @@ void getMPUData(StaticJsonDocument<1024>& doc) {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  doc["acceleration"]["x"] = a.acceleration.x;
-  doc["acceleration"]["y"] = a.acceleration.y;
-  doc["acceleration"]["z"] = a.acceleration.z;
+  doc["accel_x"] = a.acceleration.x;
+  doc["accel_y"] = a.acceleration.y;
+  doc["accel_z"] = a.acceleration.z;
 
-  doc["gyro"]["x"] = g.gyro.x;
-  doc["gyro"]["y"] = g.gyro.y;
-  doc["gyro"]["z"] = g.gyro.z;
+  doc["gyro_x"] = g.gyro.x;
+  doc["gyro_y"] = g.gyro.y;
+  doc["gyro_z"] = g.gyro.z;
 
-  doc["temperature"] = temp.temperature;
+
 }
 
 void getBMEData(StaticJsonDocument<1024>& doc) {
-  doc["bme"]["temperature"] = bme.readTemperature();
-  doc["bme"]["pressure"] = bme.readPressure() / 100.0F;
-  doc["bme"]["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA);
-  doc["bme"]["humidity"] = bme.readHumidity();
+  doc["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
